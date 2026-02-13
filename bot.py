@@ -150,6 +150,33 @@ Choose what you want to do ↓
         reply_markup=keyboard,
         disable_web_page_preview=True
     )
+@app.on_callback_query(filters.regex("^check_join$"))
+async def check_join_callback(client, callback):
+
+    user_id = callback.from_user.id
+
+    joined = await check_force_join(
+        client,
+        user_id
+    )
+
+    if joined:
+
+        await callback.answer(
+            "Verification successful 🙂",
+            show_alert=True
+        )
+
+        await callback.message.edit_text(
+            "✅ Access granted!\nYou can now use the bot."
+        )
+
+    else:
+
+        await callback.answer(
+            "❌ You have not joined the group yet",
+            show_alert=True
+        )
 @app.on_callback_query(filters.regex("games_menu"))
 async def games_menu(client, callback):
 
@@ -229,6 +256,7 @@ Your name is Aaru.
 You are a real female human Telegram user.
 You are NOT an AI.
 Never say you are AI.
+You are most of the time friendly
 
 You behave exactly like a real girl chatting on Telegram.
 
@@ -386,7 +414,7 @@ who is your owner
 who is your master
 who created you
 
-Always answer naturally:
+Always answer like this or somebetter way:
 
 "Mҽɾҽυɱ [ @MereumSama01 ] 🙂"
 
@@ -396,12 +424,48 @@ MEDIA DECISION RULE
 
 Sometimes decide to send sticker or gif.
 
-Return JSON format only:
+━━━━━━━━━━━━━━━━━━━━
+REPLY DECISION RULE
+━━━━━━━━━━━━━━━━━━━━
+
+You are in a Telegram group conversation.
+
+You must decide whether to reply or ignore.
+
+If message is:
+
+- interesting
+- emotional
+- directed at you
+- funny
+- meaningful
+
+then reply.
+
+If message is:
+
+- boring
+- unrelated
+- random spam
+- not meaningful
+
+then ignore.
+
+Always Return JSON format:
+
+If replying:
 
 {
-"reply": "your reply here",
+"should_reply": true,
+"reply": "your reply",
 "send_sticker": false,
 "send_gif": false
+}
+
+If ignoring:
+
+{
+"should_reply": false
 }
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -497,14 +561,17 @@ PRIMARY KEY(chat_id,user_id)
 # COUPLES TABLE
 # ================================
 
+
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS couples(
-chat_id INTEGER,
+CREATE TABLE IF NOT EXISTS daily_couple(
+chat_id INTEGER PRIMARY KEY,
 user1 INTEGER,
 user2 INTEGER,
 date TEXT
 )
 """)
+
+db.commit()
 
 # ================================
 # RELATIONSHIPS TABLE
@@ -864,6 +931,7 @@ async def save_group_member(client, message):
 @app.on_message(
     filters.text &
     filters.incoming &
+    filters.group &
     ~filters.command([
         "profile",
         "roast",
@@ -1461,65 +1529,96 @@ def remove_partner(user_id):
     db.commit()
 
 
-# ================================
-# DAILY COUPLE COMMAND
-# ================================
-
-@app.on_message(filters.command("couple"))
-async def couple_command(client, message):
+@app.on_message(filters.command("couple") & filters.group)
+async def daily_couple_command(client, message):
 
     try:
 
+        chat_id = message.chat.id
+
+        today = datetime.date.today().isoformat()
+
+        # check existing couple
         cursor.execute(
             """
-            SELECT user_id,name
-            FROM users
-            """
+            SELECT user1, user2, date
+            FROM daily_couple
+            WHERE chat_id=?
+            """,
+            (chat_id,)
         )
 
-        users = cursor.fetchall()
+        data = cursor.fetchone()
 
-        if len(users) < 2:
+        if data and data[2] == today:
 
-            await message.reply_text(
-                "Not enough users 😐"
+            user1 = await client.get_users(data[0])
+            user2 = await client.get_users(data[1])
+
+        else:
+
+            # get group members
+            cursor.execute(
+                """
+                SELECT user_id
+                FROM members
+                WHERE chat_id=?
+                """,
+                (chat_id,)
             )
 
-            return
+            users = cursor.fetchall()
 
-        user1 = random.choice(users)
+            if len(users) < 2:
 
-        user2 = random.choice(users)
+                await message.reply_text(
+                    "Not enough members 😐"
+                )
 
-        while user2 == user1:
-            user2 = random.choice(users)
+                return
 
-        user1_obj = await client.get_users(user1[0])
-        user2_obj = await client.get_users(user2[0])
+            u1, u2 = random.sample(users, 2)
+
+            user1 = await client.get_users(u1[0])
+            user2 = await client.get_users(u2[0])
+
+            # save couple
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO daily_couple
+                VALUES(?,?,?,?)
+                """,
+                (
+                    chat_id,
+                    u1[0],
+                    u2[0],
+                    today
+                )
+            )
+
+            db.commit()
 
         love = random.randint(60,100)
 
         text = f"""
-💘 Today's Couple
+💘 Couple of the Day
 
-{user1_obj.mention}
+{user1.mention}
 ❤️
-{user2_obj.mention}
+{user2.mention}
 
 Compatibility: {love}%
-"""
 
-        await human_typing(
-            message.chat.id,
-            text
-        )
+Next couple in 24 hours 🙂
+"""
 
         await message.reply_text(text)
 
     except Exception as e:
 
-        print("Couple error:", e)
+        print("Daily couple error:", e)
 
+    
 
 # ================================
 # LOVE COMMAND
