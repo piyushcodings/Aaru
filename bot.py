@@ -18,11 +18,29 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 # FORCE JOIN CONFIG
 # ================================
 
-FORCE_JOIN = "chatting_group_forever"
+FORCE_JOIN = "@chatting_group_forever"
 FORCE_JOIN_LINK = "https://t.me/chatting_group_forever"
 # ================================
 # FORCE JOIN CHECK
 # ================================
+# ================================
+# CONFIGURATION
+# ================================
+
+API_ID = 23907288
+API_HASH = "f9a47570ed19aebf8eb0f0a5ec1111e5"
+BOT_TOKEN = "8295778093:AAGjbtxA0F7YYQw1a189MDAfc-ZqLFhfK_g"
+
+# ================================
+# BOT INITIALIZATION
+# ================================
+
+app = Client(
+    "aaru_bot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
 
 async def check_force_join(client, user_id):
 
@@ -194,13 +212,7 @@ Available games:
         text,
         reply_markup=keyboard
     )
-# ================================
-# CONFIGURATION
-# ================================
 
-API_ID = 23907288
-API_HASH = "f9a47570ed19aebf8eb0f0a5ec1111e5"
-BOT_TOKEN = "8295778093:AAGjbtxA0F7YYQw1a189MDAfc-ZqLFhfK_g"
 # ================================
 # ADMIN CONFIG
 # ================================
@@ -520,16 +532,6 @@ turn INTEGER
 
 db.commit()
 
-# ================================
-# BOT INITIALIZATION
-# ================================
-
-app = Client(
-    "aaru_bot",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN
-)
 
 # ================================
 # USER MEMORY SYSTEM
@@ -1763,9 +1765,7 @@ async def broadcast_start(client, callback):
     )
 
 
-@app.on_message(filters.text)
-async def broadcast_handler(client, message):
-
+@app.on_message(filters.text & filters.private)
     if message.from_user.id not in ADMINS:
         return
 
@@ -1811,4 +1811,5 @@ async def users_count(client, callback):
 # PART 4 END
 # ================================
 
-print("PART 4 LOADED")
+print("Aaru Bot Started Successfully")
+app.run()
