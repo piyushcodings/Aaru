@@ -62,7 +62,7 @@ async def check_force_join(client, user_id):
 # START COMMAND (GROUP ONLY)
 # ================================
 
-@app.on_message(filters.command("start") & filters.group)
+@app.on_message(filters.command("start") & filters.private)
 async def start_group(client, message):
 
     user = message.from_user
@@ -755,26 +755,31 @@ def ai_decision(prompt, user_id):
             timeout=60
         )
 
-        response = res.json()
+        data = res.json()
 
-        # YOUR API FORMAT FIX
-        if response.get("status"):
-
-            reply_text = response.get("data", "hmm 😐")
+        # CASE 1: API returns reply JSON
+        if "reply" in data:
 
             return {
-                "reply": reply_text,
+                "reply": data["reply"],
+                "send_sticker": data.get("send_sticker", False),
+                "send_gif": data.get("send_gif", False)
+            }
+
+        # CASE 2: API returns status/data format
+        if "status" in data and data["status"]:
+
+            return {
+                "reply": data.get("data", "hmm 😐"),
                 "send_sticker": False,
                 "send_gif": False
             }
 
-        else:
-
-            return {
-                "reply": "hmm 😐",
-                "send_sticker": False,
-                "send_gif": False
-            }
+        return {
+            "reply": "hmm 😐",
+            "send_sticker": False,
+            "send_gif": False
+        }
 
     except Exception as e:
 
@@ -784,7 +789,7 @@ def ai_decision(prompt, user_id):
             "reply": "hmm 😐",
             "send_sticker": False,
             "send_gif": False
-      }
+        }
 
 # ================================
 # HUMAN TYPING SIMULATION
@@ -902,10 +907,12 @@ async def ai_chat(client, message):
             user.id
         )
 
-        reply = decision.get(
-            "reply",
-            "hmm 😐"
-        )
+        reply = decision["reply"]
+        
+
+
+
+
 
         send_sticker = decision.get(
             "send_sticker",
