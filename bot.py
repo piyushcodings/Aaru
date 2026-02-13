@@ -13,7 +13,187 @@ import time
 
 from pyrogram import Client, filters
 from pyrogram.enums import ChatAction
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+# ================================
+# FORCE JOIN CONFIG
+# ================================
 
+FORCE_JOIN = "chatting_group_forever"
+FORCE_JOIN_LINK = "https://t.me/chatting_group_forever"
+# ================================
+# FORCE JOIN CHECK
+# ================================
+
+async def check_force_join(client, user_id):
+
+    try:
+
+        member = await client.get_chat_member(
+            FORCE_JOIN,
+            user_id
+        )
+
+        if member.status in ["member", "administrator", "creator"]:
+            return True
+
+        return False
+
+    except:
+        return False
+# ================================
+# START COMMAND (GROUP ONLY)
+# ================================
+
+@app.on_message(filters.command("start") & filters.group)
+async def start_group(client, message):
+
+    user = message.from_user
+
+    # Force join check
+    joined = await check_force_join(client, user.id)
+
+    if not joined:
+
+        keyboard = InlineKeyboardMarkup([
+
+            [
+                InlineKeyboardButton(
+                    "Join Required Group 🔒",
+                    url=FORCE_JOIN_LINK
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    "I've Joined ✅",
+                    callback_data="check_join"
+                )
+            ]
+
+        ])
+
+        await message.reply_text(
+            "You must join required group first 😐",
+            reply_markup=keyboard
+        )
+
+        return
+
+    # Unique UI message
+
+    text = f"""
+╭──〔 Aaru System Activated 〕──╮
+
+Hey {user.mention} 🙂
+
+I'm Aaru — a real human.
+
+I talk, I react, I remember.
+
+Choose what you want to do ↓
+
+╰────────────────────╯
+"""
+
+    keyboard = InlineKeyboardMarkup([
+
+        [
+            InlineKeyboardButton(
+                "💬 Talk With Aaru",
+                callback_data="talk_ai"
+            ),
+
+            InlineKeyboardButton(
+                "🌹 Mereum",
+                url="https://t.me/MereumSama01"
+            )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "🎮 Open Games Hub",
+                callback_data="games_menu"
+            ),
+
+            
+        ],
+
+        [
+            InlineKeyboardButton(
+                "➕ Add me to your group",
+                url=f"https://t.me/{(await client.get_me()).username}?startgroup=true"
+            )
+        ]
+
+    ])
+
+    await message.reply_text(
+        text,
+        reply_markup=keyboard,
+        disable_web_page_preview=True
+    )
+@app.on_callback_query(filters.regex("games_menu"))
+async def games_menu(client, callback):
+
+    text = """
+🎮 Aaru Games Hub
+
+Available games:
+
+⚔️ /fight — battle Aaru
+🗡️ /kill — attack player (reply)
+
+💘 /couple — daily couple
+❤️ /love — love percentage (reply)
+
+🎭 /truth — start truth dare
+🎯 /dare — dare turn
+
+😈 /roast — roast player (reply)
+
+📊 /stats — RPG stats
+👤 /profile — full profile
+"""
+
+    keyboard = InlineKeyboardMarkup([
+
+        [
+            InlineKeyboardButton(
+                "⚔️ Fight",
+                callback_data="game_fight"
+            ),
+
+            InlineKeyboardButton(
+                "🎭 Truth Dare",
+                callback_data="game_truth"
+            )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "💘 Couple",
+                callback_data="game_couple"
+            ),
+
+            InlineKeyboardButton(
+                "😈 Roast",
+                callback_data="game_roast"
+            )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "🔙 Back",
+                callback_data="back_start"
+            )
+        ]
+
+    ])
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=keyboard
+    )
 # ================================
 # CONFIGURATION
 # ================================
@@ -21,7 +201,11 @@ from pyrogram.enums import ChatAction
 API_ID = 23907288
 API_HASH = "f9a47570ed19aebf8eb0f0a5ec1111e5"
 BOT_TOKEN = "8295778093:AAGjbtxA0F7YYQw1a189MDAfc-ZqLFhfK_g"
+# ================================
+# ADMIN CONFIG
+# ================================
 
+ADMINS = [123456789]  # apna Telegram user ID yaha daalo
 API_URL = "https://api-library-kohi.onrender.com/api/chatgpt"
 
 BOT_NAME = "aaru"
@@ -1496,7 +1680,133 @@ Simp: {simp}%
 
         print("Simp error:", e)
 
+@app.on_message(filters.command("admin"))
+async def admin_panel(client, message):
 
+    if message.from_user.id not in ADMINS:
+        return
+
+    keyboard = InlineKeyboardMarkup([
+
+        [
+            InlineKeyboardButton(
+                "📢 Broadcast",
+                callback_data="admin_broadcast"
+            )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "📊 Statistics",
+                callback_data="admin_stats"
+            )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "👥 Users Count",
+                callback_data="admin_users"
+            ),
+
+            InlineKeyboardButton(
+                "💬 Groups Count",
+                callback_data="admin_groups"
+            )
+        ]
+
+    ])
+
+    await message.reply_text(
+        "Admin Panel",
+        reply_markup=keyboard
+    )
+@app.on_callback_query(filters.regex("admin_stats"))
+async def admin_stats(client, callback):
+
+    if callback.from_user.id not in ADMINS:
+        return
+
+    cursor.execute("SELECT COUNT(*) FROM users")
+    users = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM members")
+    groups = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM profile WHERE level > 1")
+    active = cursor.fetchone()[0]
+
+    text = f"""
+📊 Advanced Statistics
+
+Users: {users}
+Group Members: {groups}
+Active Users: {active}
+
+Database: OK
+AI: Connected
+Bot: Running
+"""
+
+    await callback.message.edit_text(text)
+broadcast_mode = {}
+
+@app.on_callback_query(filters.regex("admin_broadcast"))
+async def broadcast_start(client, callback):
+
+    if callback.from_user.id not in ADMINS:
+        return
+
+    broadcast_mode[callback.from_user.id] = True
+
+    await callback.message.edit_text(
+        "Send broadcast message now"
+    )
+
+
+@app.on_message(filters.text)
+async def broadcast_handler(client, message):
+
+    if message.from_user.id not in ADMINS:
+        return
+
+    if message.from_user.id not in broadcast_mode:
+        return
+
+    cursor.execute("SELECT user_id FROM users")
+
+    users = cursor.fetchall()
+
+    success = 0
+
+    for user in users:
+
+        try:
+
+            await client.send_message(
+                user[0],
+                message.text
+            )
+
+            success += 1
+
+        except:
+            pass
+
+    await message.reply_text(
+        f"Broadcast sent to {success} users"
+    )
+
+    broadcast_mode.pop(message.from_user.id)
+@app.on_callback_query(filters.regex("admin_users"))
+async def users_count(client, callback):
+
+    cursor.execute("SELECT COUNT(*) FROM users")
+
+    count = cursor.fetchone()[0]
+
+    await callback.message.edit_text(
+        f"Total Users: {count}"
+    )
 # ================================
 # PART 4 END
 # ================================
