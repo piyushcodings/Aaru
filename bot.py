@@ -217,7 +217,7 @@ Available games:
 # ADMIN CONFIG
 # ================================
 
-ADMINS = [123456789]  # apna Telegram user ID yaha daalo
+ADMINS = [8259143988]  # apna Telegram user ID yaha daalo
 API_URL = "https://api-library-kohi.onrender.com/api/chatgpt"
 
 BOT_NAME = "aaru"
