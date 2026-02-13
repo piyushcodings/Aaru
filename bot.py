@@ -1765,38 +1765,65 @@ async def broadcast_start(client, callback):
     )
 
 
+# ================================
+# BROADCAST HANDLER
+# ================================
+
 @app.on_message(filters.text & filters.private)
-    if message.from_user.id not in ADMINS:
-        return
+async def broadcast_handler(client, message):
 
-    if message.from_user.id not in broadcast_mode:
-        return
+    try:
 
-    cursor.execute("SELECT user_id FROM users")
+        # check admin
+        if message.from_user.id not in ADMINS:
+            return
 
-    users = cursor.fetchall()
+        # check broadcast mode
+        if message.from_user.id not in broadcast_mode:
+            return
 
-    success = 0
+        cursor.execute("SELECT user_id FROM users")
 
-    for user in users:
+        users = cursor.fetchall()
 
-        try:
+        success = 0
+        failed = 0
 
-            await client.send_message(
-                user[0],
-                message.text
-            )
+        for user in users:
 
-            success += 1
+            try:
 
-        except:
-            pass
+                await client.send_message(
+                    user[0],
+                    message.text
+                )
 
-    await message.reply_text(
-        f"Broadcast sent to {success} users"
-    )
+                success += 1
 
-    broadcast_mode.pop(message.from_user.id)
+                await asyncio.sleep(0.05)
+
+            except:
+
+                failed += 1
+
+        await message.reply_text(
+            f"""
+📢 Broadcast Complete
+
+✅ Sent: {success}
+❌ Failed: {failed}
+"""
+        )
+
+        # exit broadcast mode
+        broadcast_mode.pop(
+            message.from_user.id,
+            None
+        )
+
+    except Exception as e:
+
+        print("Broadcast error:", e)
 @app.on_callback_query(filters.regex("admin_users"))
 async def users_count(client, callback):
 
