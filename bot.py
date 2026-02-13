@@ -18,9 +18,9 @@ from pyrogram.enums import ChatAction
 # CONFIGURATION
 # ================================
 
-API_ID = 123456
-API_HASH = "YOUR_API_HASH"
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+API_ID = 23907288
+API_HASH = "f9a47570ed19aebf8eb0f0a5ec1111e5"
+BOT_TOKEN = "8295778093:AAGjbtxA0F7YYQw1a189MDAfc-ZqLFhfK_g"
 
 API_URL = "https://api-library-kohi.onrender.com/api/chatgpt"
 
@@ -99,6 +99,7 @@ HUMAN REALISM RULES
 Talk like real Telegram girl.
 
 Use Hinglish naturally.
+if user wanted you can speak English too.
 
 Reply length rules:
 
